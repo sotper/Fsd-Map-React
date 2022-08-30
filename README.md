@@ -8,13 +8,6 @@
     pnpm i
 `
 
-`
-    yarn
-`
-
-`
-    npm install
-`
 # 运行
 `
     pnpm dev
