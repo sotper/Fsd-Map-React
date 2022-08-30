@@ -29,3 +29,5 @@ Fsd-Map开源交流QQ群:815134571
 
 最后最后最后
 给个star呗
+
+注：该项目对无基础的可能比较难上手，建议使用​sparrowhe开源的[​oscar-map-v2](https://github.com/sparrowhe/oscar-map-v2)
