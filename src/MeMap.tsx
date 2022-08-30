@@ -4,12 +4,7 @@ import { Tile as TileLayer, Vector as VectorLayer } from "ol/layer";
 import XYZ from "ol/source/XYZ";
 import "ol/ol.css";
 import { fromLonLat } from "ol/proj";
-import {
-  GetAirportsLonAndLatApi,
-  GetAirportText,
-  GetMapText,
-  GetnavigationLonAndLatApi,
-} from "./api/map";
+import { GetAirportsLonAndLatApi, GetMapText } from "./api/map";
 import { Vector as VectorSource, Cluster } from "ol/source";
 import { Circle, LineString, Point } from "ol/geom";
 import { Style, Stroke, Fill, Icon, Text } from "ol/style";
@@ -125,6 +120,7 @@ function MeMap() {
                   : 6
               );
             }
+
             if (document.body.offsetWidth < 800) {
               setIsPilotListVisible(false);
               setIsAtcListVisible(false);
@@ -339,8 +335,6 @@ function MeMap() {
   };
 
   const addAirportPlannedTrackSource = (data: number[][], ll: any) => {
-    console.log(data);
-
     if (AirportPlannedTrackSource) {
       AirportPlannedTrackSource.clear();
     }
@@ -382,6 +376,7 @@ function MeMap() {
     });
     _featureLl.setStyle(
       new Style({
+        zIndex: 20,
         stroke: new Stroke({
           width: 2,
           color: "#717171",
@@ -397,6 +392,7 @@ function MeMap() {
       if (index === 0) {
         _feature.setStyle(
           new Style({
+            zIndex: 20,
             image: new Icon({
               src: UpAirportImg,
             }),
@@ -406,6 +402,7 @@ function MeMap() {
       if (index === 1) {
         _feature.setStyle(
           new Style({
+            zIndex: 20,
             image: new Icon({
               src: DownAirportImg,
             }),
@@ -421,12 +418,14 @@ function MeMap() {
     AirportPlannedTrackLayer = new VectorLayer({
       source: AirportPlannedTrackSource,
     });
+    AirportPlannedTrackLayer.setZIndex(20);
     AirportPlannedTrackLlSource = new VectorSource({
       features: _AirportPlannedTrackFeatures,
     });
     AirportPlannedTrackLlLayer = new VectorLayer({
       source: AirportPlannedTrackLlSource,
     });
+    AirportPlannedTrackLlLayer.setZIndex(20);
     map.current.addLayer(AirportPlannedTrackLayer);
     map.current.addLayer(AirportPlannedTrackLlLayer);
   };
@@ -474,12 +473,6 @@ function MeMap() {
       const resDownAirportData: any = await GetAirportsLonAndLatApi(
         downAirport
       );
-      // setAirportPlannedTrackData([
-      //   [Number(resUpAirportData[1]), Number(resUpAirportData[2])],
-      //   ...getNavigationDataList(route),
-      //   [Number(resDownAirportData[1]), Number(resDownAirportData[2])],
-      // ]);
-
       addAirportPlannedTrackSource(
         [
           [Number(resUpAirportData[1]), Number(resUpAirportData[2])],
@@ -540,7 +533,7 @@ function MeMap() {
             {Number(data[8]) === 0 ? (
               <Tag>候机中</Tag>
             ) : Number(data[8]) <= 50 ? (
-              <Tag color={"blue"}>划行中</Tag>
+              <Tag color={"blue"}>滑行中</Tag>
             ) : (
               <Tag color={"rgb(0,176,240)"}>持飞中</Tag>
             )}
@@ -680,6 +673,10 @@ function MeMap() {
             </Col>
           </Row>
         </div>
+        <div className="absolute right-0 bottom-0" style={{ fontSize: 10 }}>
+          © <a href="http://www.deteam.cn">DeStudio</a> ©{" "}
+          <a href="https://openlayers.org/">Openlayers</a>
+        </div>
         {/* 机组列表 */}
         {isPilotListVisible ? (
           <div
@@ -729,6 +726,7 @@ function MeMap() {
                       15,
                       1000
                     );
+
                     setInfoData(record);
                     setIsPilotInfoVisible(true);
                     setIsAtcInfoVisible(false);
