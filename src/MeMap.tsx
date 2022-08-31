@@ -21,36 +21,116 @@ import FlightImg from "@/assets/flight.png";
 import DownAirportImg from "@/assets/DownAirportImg.svg";
 import UpAirportImg from "@/assets/UpAirportImg.svg";
 import TextArea from "antd/lib/input/TextArea";
-// import navigationData from "@/assets/navigation.json";
-
+import { flyTo, flyToPoint } from "./utils/flyToUtil";
+const pilotColumns = [
+  {
+    title: "航班号",
+    dataIndex: "flightCall",
+    key: "flightCall",
+    render: (_: any, data: any) => {
+      return data[0];
+    },
+  },
+  {
+    title: "飞行员",
+    dataIndex: "pilot",
+    key: "pilot",
+    render: (_: any, data: any) => {
+      return data[1];
+    },
+  },
+  {
+    title: "起飞机场",
+    dataIndex: "startAirport",
+    key: "startAirport",
+    render: (_: any, data: any) => {
+      return data[11];
+    },
+  },
+  {
+    title: "落地机场",
+    dataIndex: "endAirport",
+    key: "endAirport",
+    render: (_: any, data: any) => {
+      return data[13];
+    },
+  },
+  {
+    title: "状态",
+    dataIndex: "state",
+    key: "state",
+    render: (_: any, data: any) => {
+      return (
+        <>
+          {Number(data[8]) === 0 ? (
+            <Tag>候机中</Tag>
+          ) : Number(data[8]) <= 50 ? (
+            <Tag color={"blue"}>滑行中</Tag>
+          ) : (
+            <Tag color={"rgb(0,176,240)"}>持飞中</Tag>
+          )}
+        </>
+      );
+    },
+  },
+];
+const atcColumns = [
+  {
+    title: "管制席位",
+    dataIndex: "Atc",
+    key: "Atc",
+    render: (_: any, data: any) => {
+      return data[0];
+    },
+  },
+  {
+    title: "管制员",
+    dataIndex: "call",
+    key: "call",
+    render: (_: any, data: any) => {
+      return data[1];
+    },
+  },
+  {
+    title: "管制范围",
+    dataIndex: "range",
+    key: "range",
+    render: (_: any, data: any) => {
+      return data[19];
+    },
+  },
+  {
+    title: "频率",
+    dataIndex: "frequency",
+    key: "frequency",
+    render: (_: any, data: any) => {
+      return data[4];
+    },
+  },
+];
 function MeMap() {
   const map = useRef<any>();
   const MapElement = createRef<HTMLDivElement>();
-  let AtcSource: any = null;
-  let AtcRangeSource: any = null;
-  let PilotSource: any = null;
-  let AtcLayer: any = null;
-  let AtcRangeLayer: any = null;
-  let PilotLayer: any = null;
-  let AirportPlannedTrackLayer: any = null;
-  let AirportPlannedTrackSource: any = null;
-  let AirportPlannedTrackLlLayer: any = null;
-  let AirportPlannedTrackLlSource: any = null;
+
+  let AtcSource: any = new VectorSource();
+  let AtcRangeSource: any = new VectorSource();
+  let PilotSource: any = new VectorSource();
+  let AtcLayer: any = new VectorLayer();
+  let AtcRangeLayer: any = new VectorLayer();
+  let PilotLayer: any = new VectorLayer();
+  let AirportPlannedTrackLayer: any = new VectorLayer();
+  let AirportPlannedTrackSource: any = new VectorSource();
+  let AirportPlannedTrackLlLayer: any = new VectorLayer();
+  let AirportPlannedTrackLlSource: any = new VectorSource();
+
   const [time, setTime] = useState<any>();
   const [infoData, setInfoData] = useState<string[]>([]);
-  const [i, setI] = useState<number>(1);
   const [atcDataList, setAtcDataList] = useState<string[][]>([]);
   const [PilotDataList, setPilotDataList] = useState<string[][]>([]);
 
   const [isPilotInfoVisible, setIsPilotInfoVisible] = useState<boolean>(false);
   const [isPilotListVisible, setIsPilotListVisible] = useState<boolean>(false);
-  const [isWidthMobile, setIsWidthMobile] = useState<boolean>(false);
   const [isAtcListVisible, setIsAtcListVisible] = useState<boolean>(false);
-  const [isAirportPlannedTrackVisible, setIsAirportPlannedTrackVisible] =
-    useState<boolean>(false);
-  const [AirportPlannedTrackData, setAirportPlannedTrackData] = useState<
-    number[][]
-  >([]);
   const [isAtcInfoVisible, setIsAtcInfoVisible] = useState<boolean>(false);
 
   const initMap = () => {
@@ -62,6 +142,11 @@ function MeMap() {
             url: "https://map.geoq.cn/ArcGIS/rest/services/ChinaOnlineStreetPurplishBlue/MapServer/tile/{z}/{y}/{x}",
           }),
         }),
+        AtcLayer,
+        AtcRangeLayer,
+        AirportPlannedTrackLayer,
+        AirportPlannedTrackLlLayer,
+        PilotLayer,
       ],
       maxTilesLoading: 5000,
       view: new View({
@@ -81,44 +166,38 @@ function MeMap() {
             const data = feature.getProperties()["title"];
 
             if (data[3] === "PILOT") {
+              AirportPlannedTrackLlSource.clear();
+              AirportPlannedTrackSource.clear();
               setInfoData(data);
               setIsAtcInfoVisible(false);
               setIsPilotInfoVisible(true);
               GetAirportsLonAndLat(data[11], data[13], data[5], data[6]);
-              //   flyToPoint(
-              //     [Number(data[6]), Number(data[5])],
-              //     map.current.getView().getZoom(),
-              //     1000
-              //   );
             }
             if (data[3] === "ATC") {
-              const layers = map.current.getLayers().getArray();
-              if (layers.length > 0) {
-                layers.forEach((item: any, index: any) => {
-                  if (index > 1) {
-                    item.getSource().refresh(); //这句代码
-                  }
-                });
-              }
+              AirportPlannedTrackLlSource.clear();
+              AirportPlannedTrackSource.clear();
               setInfoData(data);
               setIsAtcInfoVisible(true);
               setIsPilotInfoVisible(false);
-              flyToPoint(
-                [Number(data[6]), Number(data[5]) - 0.03],
-                Number(data[19]) <= 30
-                  ? 12
-                  : Number(data[19]) <= 50
-                  ? 11
-                  : Number(data[19]) <= 150
-                  ? 10
-                  : Number(data[19]) <= 300
-                  ? 9
-                  : Number(data[19]) <= 800
-                  ? 8
-                  : Number(data[19]) <= 1300
-                  ? 7
-                  : 6
-              );
+              setTimeout(() => {
+                flyToPoint(
+                  map,
+                  [Number(data[6]), Number(data[5]) - 0.03],
+                  Number(data[19]) <= 30
+                    ? 12
+                    : Number(data[19]) <= 50
+                    ? 11
+                    : Number(data[19]) <= 150
+                    ? 10
+                    : Number(data[19]) <= 300
+                    ? 9
+                    : Number(data[19]) <= 800
+                    ? 8
+                    : Number(data[19]) <= 1300
+                    ? 7
+                    : 6
+                );
+              }, 200);
             }
 
             if (document.body.offsetWidth < 800) {
@@ -131,59 +210,7 @@ function MeMap() {
       );
     });
   };
-  const flyToPoint = (point: any, zoom: number, duration: number = 1500) => {
-    var to = fromLonLat(point);
-    var view = map.current.getView();
 
-    view.animate({
-      center: to,
-      zoom: zoom,
-      duration: duration,
-    });
-  };
-  const flyTo = (point: any, zoom: number, duration: number = 1500) => {
-    // var to = fromLonLat(point);
-    // var view = map.current.getView();
-
-    // view.animate({
-    //   center: to,
-    //   zoom: zoom,
-    //   duration: duration,
-    // });
-    // const duration1 = 2000;
-    const view = map.current.getView();
-    // const zoom1 = view.getZoom();
-    let parts = 2;
-    let called = false;
-    function callback(complete: any) {
-      --parts;
-      if (called) {
-        return;
-      }
-      if (parts === 0 || !complete) {
-        called = true;
-        // done(complete);
-      }
-    }
-    view.animate(
-      {
-        center: fromLonLat(point),
-        duration: duration,
-      },
-      callback
-    );
-    view.animate(
-      {
-        zoom: zoom - 1,
-        duration: duration / 2,
-      },
-      {
-        zoom: zoom,
-        duration: duration / 2,
-      },
-      callback
-    );
-  };
   const onLoading = async () => {
     try {
       const resData: any = await GetMapText();
@@ -205,19 +232,16 @@ function MeMap() {
           pilotData.push(data);
         }
       });
-      setAtcSource(atcData);
-      setPilotSource(pilotData);
+      setAtcAndPilotSource(atcData, pilotData);
       setAtcDataList(atcData);
       setPilotDataList(pilotData);
     } catch (error) {}
   };
-  const setAtcSource = (data: string[][]) => {
-    if (AtcSource) {
-      AtcSource.clear();
-    }
-    if (AtcRangeSource) {
-      AtcRangeSource.clear();
-    }
+  // 机组及管制的渲染方法
+  const setAtcAndPilotSource = (data: string[][], pilotData: string[][]) => {
+    AtcSource.clear();
+    AtcRangeSource.clear();
+    PilotSource.clear();
     const _AtcFeatures = data.map((item) => {
       const _feature = new Feature({
         title: item,
@@ -274,28 +298,7 @@ function MeMap() {
       );
       return _feature;
     });
-    AtcSource = new VectorSource({
-      features: _AtcFeatures,
-    });
-    AtcLayer = new VectorLayer({
-      source: AtcSource,
-    });
-    AtcLayer.setZIndex(99);
-    AtcRangeSource = new VectorSource({
-      features: _AtcRangeFeatures,
-    });
-    AtcRangeLayer = new VectorLayer({
-      source: AtcRangeSource,
-    });
-    // AtcRangeLayer.setZIndex(1);
-    map.current.addLayer(AtcLayer);
-    map.current.addLayer(AtcRangeLayer);
-  };
-  const setPilotSource = (data: string[][]) => {
-    if (PilotSource) {
-      PilotSource.clear();
-    }
-    const _PilotFeatures = data.map((item) => {
+    const _PilotFeatures = pilotData.map((item) => {
       const _feature = new Feature({
         title: item,
         geometry: new Point(fromLonLat([Number(item[6]), Number(item[5])])),
@@ -325,22 +328,22 @@ function MeMap() {
       );
       return _feature;
     });
-    PilotSource = new VectorSource({
-      features: _PilotFeatures,
-    });
-    PilotLayer = new VectorLayer({
-      source: PilotSource,
-    });
+    AtcSource.addFeatures(_AtcFeatures);
+    PilotSource.addFeatures(_PilotFeatures);
+    AtcRangeSource.addFeatures(_AtcRangeFeatures);
+    PilotLayer.setSource(PilotSource);
+    AtcLayer.setSource(AtcSource);
+    AtcRangeLayer.setSource(AtcRangeSource);
+    AtcLayer.setZIndex(99);
+    AtcRangeLayer.setZIndex(1);
+    map.current.addLayer(AtcLayer);
+    map.current.addLayer(AtcRangeLayer);
     map.current.addLayer(PilotLayer);
   };
-
+  // 航迹渲染方法
   const addAirportPlannedTrackSource = (data: number[][], ll: any) => {
-    if (AirportPlannedTrackSource) {
-      AirportPlannedTrackSource.clear();
-    }
-    if (AirportPlannedTrackLlSource) {
-      AirportPlannedTrackLlSource.clear();
-    }
+    AirportPlannedTrackSource.clear();
+    AirportPlannedTrackLlSource.clear();
     const routeData: any[] = [];
     const routeDataIsLl: any[] = [];
     routeDataIsLl.push(fromLonLat([data[0][1], data[0][0]]));
@@ -351,7 +354,6 @@ function MeMap() {
       routeData.push(fromLonLat([item[1], item[0]]));
     });
     const _feature = new Feature({
-      title: "111",
       geometry: new LineString(routeData),
     });
     _feature.setStyle(
@@ -368,7 +370,6 @@ function MeMap() {
     ]);
 
     const _featureLl = new Feature({
-      title: "111",
       geometry: new LineString([
         ll,
         fromLonLat([data[data.length - 1][1], data[data.length - 1][0]]),
@@ -412,55 +413,15 @@ function MeMap() {
 
       return _feature;
     });
-    AirportPlannedTrackSource = new VectorSource({
-      features: [_feature, _featureLl],
-    });
-    AirportPlannedTrackLayer = new VectorLayer({
-      source: AirportPlannedTrackSource,
-    });
+    AirportPlannedTrackSource.addFeatures([_feature, _featureLl]);
+    AirportPlannedTrackLayer.setSource(AirportPlannedTrackSource);
     AirportPlannedTrackLayer.setZIndex(20);
-    AirportPlannedTrackLlSource = new VectorSource({
-      features: _AirportPlannedTrackFeatures,
-    });
-    AirportPlannedTrackLlLayer = new VectorLayer({
-      source: AirportPlannedTrackLlSource,
-    });
+    AirportPlannedTrackLlSource.addFeatures(_AirportPlannedTrackFeatures);
+    AirportPlannedTrackLlLayer.setSource(AirportPlannedTrackLlSource);
     AirportPlannedTrackLlLayer.setZIndex(20);
     map.current.addLayer(AirportPlannedTrackLayer);
     map.current.addLayer(AirportPlannedTrackLlLayer);
   };
-  // const getNavigationData = (navigation: string) => {
-  //   let data: number[] = [];
-  //   let dd: {
-  //     title: string;
-  //     lon: number;
-  //     lat: number;
-  //   }[] = [];
-  //   const navigationDataList: any = navigationData;
-  //   navigationDataList.map((item: string[]) => {
-  //     if (item[0] === navigation) {
-  //       data = [Number(item[1]), Number(item[2])];
-  //       dd.push({
-  //         title: item[0],
-  //         lon: Number(item[1]),
-  //         lat: Number(item[2]),
-  //       });
-  //     }
-  //   });
-  //   return data;
-  // };
-  // const getNavigationDataList: any = (dataList: string) => {
-  //   const data: string[] = dataList.split(" ");
-  //   let res: number[][] = [];
-  //   data.map((item: string) => {
-  //     let d = getNavigationData(item);
-  //     if (d[0] !== undefined || d[1] !== undefined) {
-  //       res.push(d);
-  //     }
-  //   });
-
-  //   return res;
-  // };
 
   const GetAirportsLonAndLat = async (
     upAirport: string,
@@ -490,93 +451,6 @@ function MeMap() {
   //   } catch (error) {}
   // };
 
-  const pilotColumns = [
-    {
-      title: "航班号",
-      dataIndex: "flightCall",
-      key: "flightCall",
-      render: (_: any, data: any) => {
-        return data[0];
-      },
-    },
-    {
-      title: "飞行员",
-      dataIndex: "pilot",
-      key: "pilot",
-      render: (_: any, data: any) => {
-        return data[1];
-      },
-    },
-    {
-      title: "起飞机场",
-      dataIndex: "startAirport",
-      key: "startAirport",
-      render: (_: any, data: any) => {
-        return data[11];
-      },
-    },
-    {
-      title: "落地机场",
-      dataIndex: "endAirport",
-      key: "endAirport",
-      render: (_: any, data: any) => {
-        return data[13];
-      },
-    },
-    {
-      title: "状态",
-      dataIndex: "state",
-      key: "state",
-      render: (_: any, data: any) => {
-        return (
-          <>
-            {Number(data[8]) === 0 ? (
-              <Tag>候机中</Tag>
-            ) : Number(data[8]) <= 50 ? (
-              <Tag color={"blue"}>滑行中</Tag>
-            ) : (
-              <Tag color={"rgb(0,176,240)"}>持飞中</Tag>
-            )}
-          </>
-        );
-      },
-    },
-  ];
-  const atcColumns = [
-    {
-      title: "管制席位",
-      dataIndex: "Atc",
-      key: "Atc",
-      render: (_: any, data: any) => {
-        return data[0];
-      },
-    },
-    {
-      title: "管制员",
-      dataIndex: "call",
-      key: "call",
-      render: (_: any, data: any) => {
-        return data[1];
-      },
-    },
-    {
-      title: "管制范围",
-      dataIndex: "range",
-      key: "range",
-      render: (_: any, data: any) => {
-        return data[19];
-      },
-    },
-    {
-      title: "频率",
-      dataIndex: "frequency",
-      key: "frequency",
-      render: (_: any, data: any) => {
-        return data[4];
-      },
-    },
-  ];
-
   useEffect(() => {
     initMap();
     onLoading();
@@ -599,6 +473,7 @@ function MeMap() {
         className="relative overflow-hidden"
         style={{ width: "100%", height: "100%" }}
       >
+        {/* 地图Div */}
         <div
           id="map"
           ref={MapElement}
@@ -624,55 +499,63 @@ function MeMap() {
               {time}
             </span>
           </Card>
-          <Row>
-            <Col>
-              <Tooltip placement="topLeft" title="在线机组列表">
-                <Button
-                  style={{
-                    marginTop: "15px",
-                    marginLeft: "5px",
-                    background: "#000",
-                    border: 0,
-                  }}
-                  onClick={() => {
-                    setIsPilotListVisible(!isPilotListVisible);
-                    setIsAtcListVisible(false);
-                    if (document.body.offsetWidth < 800) {
-                      setIsPilotInfoVisible(false);
-                      setIsAtcInfoVisible(false);
-                    }
-                  }}
-                >
-                  <UsergroupDeleteOutlined />
-                </Button>
-              </Tooltip>
-            </Col>
-          </Row>
-          <Row>
-            <Col>
-              <Tooltip placement="bottomLeft" title="在线管制列表">
-                <Button
-                  style={{
-                    marginTop: "15px",
-                    marginLeft: "5px",
-                    background: "#000",
-                    border: 0,
-                  }}
-                  onClick={() => {
-                    setIsAtcListVisible(!isAtcListVisible);
-                    setIsPilotListVisible(false);
-                    if (document.body.offsetWidth < 800) {
-                      setIsPilotInfoVisible(false);
-                      setIsAtcInfoVisible(false);
-                    }
-                  }}
-                >
-                  <WifiOutlined />
-                </Button>
-              </Tooltip>
-            </Col>
-          </Row>
+          {/* 左侧按钮部分 */}
+          <div
+            className="absolute top-20 left-0"
+            style={{
+              width: "auto",
+            }}
+          >
+            <Row>
+              <Col>
+                <Tooltip placement="topLeft" title="在线机组列表">
+                  <Button
+                    style={{
+                      marginLeft: "5px",
+                      background: "#000",
+                      border: 0,
+                    }}
+                    onClick={() => {
+                      setIsPilotListVisible(!isPilotListVisible);
+                      setIsAtcListVisible(false);
+                      if (document.body.offsetWidth < 800) {
+                        setIsPilotInfoVisible(false);
+                        setIsAtcInfoVisible(false);
+                      }
+                    }}
+                  >
+                    <UsergroupDeleteOutlined />
+                  </Button>
+                </Tooltip>
+              </Col>
+            </Row>
+            <Row>
+              <Col>
+                <Tooltip placement="bottomLeft" title="在线管制列表">
+                  <Button
+                    style={{
+                      marginTop: "15px",
+                      marginLeft: "5px",
+                      background: "#000",
+                      border: 0,
+                    }}
+                    onClick={() => {
+                      setIsAtcListVisible(!isAtcListVisible);
+                      setIsPilotListVisible(false);
+                      if (document.body.offsetWidth < 800) {
+                        setIsPilotInfoVisible(false);
+                        setIsAtcInfoVisible(false);
+                      }
+                    }}
+                  >
+                    <WifiOutlined />
+                  </Button>
+                </Tooltip>
+              </Col>
+            </Row>
+          </div>
         </div>
+        {/* 底部 */}
         <div className="absolute right-0 bottom-0" style={{ fontSize: 10 }}>
           © <a href="http://www.deteam.cn">DeStudio</a> ©{" "}
           <a href="https://openlayers.org/">Openlayers</a>
@@ -715,6 +598,7 @@ function MeMap() {
                       record[6]
                     );
                     flyToPoint(
+                      map,
                       [
                         document.body.offsetWidth < 800
                           ? Number(record[6])
@@ -763,22 +647,14 @@ function MeMap() {
               <Table
                 key="AtcList"
                 dataSource={atcDataList}
-                // scroll={{ x: true }}
                 columns={atcColumns}
                 onRow={(record) => ({
                   onClick: () => {
                     setInfoData(record);
                     setIsAtcInfoVisible(true);
                     setIsPilotInfoVisible(false);
-                    const layers = map.current.getLayers().getArray();
-                    if (layers.length > 0) {
-                      layers.forEach((item: any, index: any) => {
-                        if (index > 1) {
-                          item.getSource().refresh(); //这句代码
-                        }
-                      });
-                    }
                     flyTo(
+                      map,
                       [
                         document.body.offsetWidth < 800
                           ? Number(record[6])
