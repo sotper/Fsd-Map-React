@@ -590,6 +590,8 @@ function MeMap() {
                 onRow={(record) => ({
                   onClick: () => {
                     setIsNo(true);
+                    AirportPlannedTrackLlSource.clear();
+                    AirportPlannedTrackSource.clear();
                     GetAirportsLonAndLat(
                       record[11],
                       record[13],
