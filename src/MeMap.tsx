@@ -129,6 +129,7 @@ function MeMap() {
   const [PilotDataList, setPilotDataList] = useState<string[][]>([]);
 
   const [isPilotInfoVisible, setIsPilotInfoVisible] = useState<boolean>(false);
+  const [isNo, setIsNo] = useState<boolean>(false);
   const [isPilotListVisible, setIsPilotListVisible] = useState<boolean>(false);
   const [isAtcListVisible, setIsAtcListVisible] = useState<boolean>(false);
   const [isAtcInfoVisible, setIsAtcInfoVisible] = useState<boolean>(false);
@@ -166,6 +167,7 @@ function MeMap() {
             const data = feature.getProperties()["title"];
 
             if (data[3] === "PILOT") {
+              setIsNo(true);
               AirportPlannedTrackLlSource.clear();
               AirportPlannedTrackSource.clear();
               setInfoData(data);
@@ -174,14 +176,8 @@ function MeMap() {
               GetAirportsLonAndLat(data[11], data[13], data[5], data[6]);
             }
             if (data[3] === "ATC") {
-              const layers = map.current.getLayers().getArray();
-              if (layers.length > 0) {
-                layers.forEach((item: any, index: any) => {
-                  if (index === 3 || index === 4) {
-                    item.getSource().refresh();
-                  }
-                });
-              }
+              AirportPlannedTrackLlSource.clear();
+              AirportPlannedTrackSource.clear();
               setInfoData(data);
               setIsAtcInfoVisible(true);
               setIsPilotInfoVisible(false);
@@ -238,9 +234,9 @@ function MeMap() {
           pilotData.push(data);
         }
       });
-      setAtcAndPilotSource(atcData, pilotData);
       setAtcDataList(atcData);
       setPilotDataList(pilotData);
+      setAtcAndPilotSource(atcData, pilotData);
     } catch (error) {}
   };
   // 机组及管制的渲染方法
@@ -593,6 +589,7 @@ function MeMap() {
                 columns={pilotColumns}
                 onRow={(record) => ({
                   onClick: () => {
+                    setIsNo(true);
                     GetAirportsLonAndLat(
                       record[11],
                       record[13],
@@ -652,6 +649,14 @@ function MeMap() {
                 columns={atcColumns}
                 onRow={(record) => ({
                   onClick: () => {
+                    const layers = map.current.getLayers().getArray();
+                    if (layers.length > 0) {
+                      layers.forEach((item: any, index: any) => {
+                        if (index === 3 || index === 4) {
+                          isNo ? item.getSource().refresh() : null;
+                        }
+                      });
+                    }
                     setInfoData(record);
                     setIsAtcInfoVisible(true);
                     setIsPilotInfoVisible(false);
@@ -747,7 +752,7 @@ function MeMap() {
           if (layers.length > 0) {
             layers.forEach((item: any, index: any) => {
               if (index === 3 || index === 4) {
-                item.getSource().refresh();
+                isNo ? item.getSource().refresh() : null;
               }
             });
           }
