@@ -112,16 +112,16 @@ function MeMap() {
   const map = useRef<any>();
   const MapElement = createRef<HTMLDivElement>();
 
-  let AtcSource: any = new VectorSource();
-  let AtcRangeSource: any = new VectorSource();
-  let PilotSource: any = new VectorSource();
-  let AtcLayer: any = new VectorLayer();
-  let AtcRangeLayer: any = new VectorLayer();
-  let PilotLayer: any = new VectorLayer();
-  let AirportPlannedTrackLayer: any = new VectorLayer();
-  let AirportPlannedTrackSource: any = new VectorSource();
-  let AirportPlannedTrackLlLayer: any = new VectorLayer();
-  let AirportPlannedTrackLlSource: any = new VectorSource();
+  let AtcSource = new VectorSource();
+  let AtcRangeSource = new VectorSource();
+  let PilotSource = new VectorSource();
+  let AtcLayer = new VectorLayer();
+  let AtcRangeLayer = new VectorLayer();
+  let PilotLayer = new VectorLayer();
+  let AirportPlannedTrackLayer = new VectorLayer();
+  let AirportPlannedTrackSource = new VectorSource();
+  let AirportPlannedTrackLlLayer = new VectorLayer();
+  let AirportPlannedTrackLlSource = new VectorSource();
 
   const [time, setTime] = useState<any>();
   const [infoData, setInfoData] = useState<string[]>([]);
@@ -174,8 +174,14 @@ function MeMap() {
               GetAirportsLonAndLat(data[11], data[13], data[5], data[6]);
             }
             if (data[3] === "ATC") {
-              AirportPlannedTrackLlSource.clear();
-              AirportPlannedTrackSource.clear();
+              const layers = map.current.getLayers().getArray();
+              if (layers.length > 0) {
+                layers.forEach((item: any, index: any) => {
+                  if (index === 3 || index === 4) {
+                    item.getSource().refresh();
+                  }
+                });
+              }
               setInfoData(data);
               setIsAtcInfoVisible(true);
               setIsPilotInfoVisible(false);
@@ -364,10 +370,6 @@ function MeMap() {
         }),
       })
     );
-    console.log([
-      ll,
-      fromLonLat([data[data.length - 1][1], data[data.length - 1][0]]),
-    ]);
 
     const _featureLl = new Feature({
       geometry: new LineString([
@@ -694,14 +696,6 @@ function MeMap() {
         placement={document.body.offsetWidth < 800 ? "bottom" : "right"}
         onClose={() => {
           setIsAtcInfoVisible(false);
-          const layers = map.current.getLayers().getArray();
-          if (layers.length > 0) {
-            layers.forEach((item: any, index: any) => {
-              if (index > 1) {
-                item.getSource().refresh(); //这句代码
-              }
-            });
-          }
         }}
         getContainer={false}
         mask={false}
@@ -749,15 +743,15 @@ function MeMap() {
         title="机组详情"
         placement={document.body.offsetWidth < 800 ? "bottom" : "right"}
         onClose={() => {
-          setIsPilotInfoVisible(false);
           const layers = map.current.getLayers().getArray();
           if (layers.length > 0) {
             layers.forEach((item: any, index: any) => {
-              if (index > 1) {
-                item.getSource().refresh(); //这句代码
+              if (index === 3 || index === 4) {
+                item.getSource().refresh();
               }
             });
           }
+          setIsPilotInfoVisible(false);
         }}
         getContainer={false}
         mask={false}
