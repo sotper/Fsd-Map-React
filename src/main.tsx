@@ -1,6 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import App from "./MeMap";
+import App from "./App";
 import "@/styles/index.less";
 import "@/styles/tailwind.css";
 

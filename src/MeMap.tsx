@@ -149,8 +149,6 @@ function MeMap() {
         }),
         AtcLayer,
         AtcRangeLayer,
-        AirportPlannedTrackLayer,
-        AirportPlannedTrackLlLayer,
         PilotLayer,
       ],
       maxTilesLoading: 5000,
@@ -397,8 +395,6 @@ function MeMap() {
       })
     );
     const _AirportPlannedTrackFeatures = routeDataIsLl.map((item, index) => {
-      console.log(item, index);
-
       const _feature = new Feature({
         title: item,
         geometry: new Point(fromLonLat([item[0], item[1]])),
@@ -454,21 +450,15 @@ function MeMap() {
     lon: string,
     lat: string
   ) => {
-    try {
-      // const resUpAirportData: any = await GetAirportsLonAndLatApi(upAirport);
-      // const resDownAirportData: any = await GetAirportsLonAndLatApi(
-      //   downAirport
-      // );
-      const resData: any = await GetnavigationTrackApi(
-        route,
-        upAirport,
-        downAirport
-      );
-      addAirportPlannedTrackSource(
-        resData,
-        fromLonLat([Number(lat), Number(lon)])
-      );
-    } catch (error) {}
+    const resData: any = await GetnavigationTrackApi(
+      route,
+      upAirport,
+      downAirport
+    );
+    addAirportPlannedTrackSource(
+      resData,
+      fromLonLat([Number(lat), Number(lon)])
+    );
   };
 
   // const GetNavigationLonAndLat = async (navigation: string) => {
@@ -506,387 +496,399 @@ function MeMap() {
             width: "100vw",
             height: "100vh",
           }}
-        ></div>
-        {/* 顶部 */}
-        <div
-          className="absolute top-0 left-0"
-          style={{ width: document.body.offsetWidth < 800 ? "100%" : "400px" }}
         >
-          <Card
-            bodyStyle={{
-              padding: 10,
-              width: "100%",
-              height: "62px",
-            }}
-            className=" rounded-md"
-          >
-            <span className=" flex justify-center items-center h-full font-bold text-2xl">
-              {time}
-            </span>
-          </Card>
-          {/* 左侧按钮部分 */}
+          {/* 顶部 */}
           <div
-            className="absolute top-20 left-0"
+            className="absolute top-0 left-0 z-50"
             style={{
-              width: "auto",
-            }}
-          >
-            <Row>
-              <Col>
-                <Tooltip placement="topLeft" title="在线机组列表">
-                  <Button
-                    style={{
-                      marginLeft: "5px",
-                      background: "#000",
-                      border: 0,
-                    }}
-                    onClick={() => {
-                      setIsPilotListVisible(!isPilotListVisible);
-                      setIsAtcListVisible(false);
-                      if (document.body.offsetWidth < 800) {
-                        setIsPilotInfoVisible(false);
-                        setIsAtcInfoVisible(false);
-                      }
-                    }}
-                  >
-                    <UsergroupDeleteOutlined />
-                  </Button>
-                </Tooltip>
-              </Col>
-            </Row>
-            <Row>
-              <Col>
-                <Tooltip placement="bottomLeft" title="在线管制列表">
-                  <Button
-                    style={{
-                      marginTop: "15px",
-                      marginLeft: "5px",
-                      background: "#000",
-                      border: 0,
-                    }}
-                    onClick={() => {
-                      setIsAtcListVisible(!isAtcListVisible);
-                      setIsPilotListVisible(false);
-                      if (document.body.offsetWidth < 800) {
-                        setIsPilotInfoVisible(false);
-                        setIsAtcInfoVisible(false);
-                      }
-                    }}
-                  >
-                    <WifiOutlined />
-                  </Button>
-                </Tooltip>
-              </Col>
-            </Row>
-          </div>
-        </div>
-        {/* 底部 */}
-        <div className="absolute right-0 bottom-0" style={{ fontSize: 10 }}>
-          © <a href="http://www.deteam.cn">DeStudio</a> ©{" "}
-          <a href="https://openlayers.org/">Openlayers</a>
-        </div>
-        {/* 机组列表 */}
-        {isPilotListVisible ? (
-          <div
-            className="absolute top-0 left-0 sm:ml-14 w-full sm:w-auto"
-            style={{
-              marginTop: document.body.offsetWidth < 800 ? "200px" : "100px",
+              width: document.body.offsetWidth < 800 ? "100%" : "400px",
             }}
           >
             <Card
-              bodyStyle={{ padding: 0 }}
-              title="在线机组列表"
-              className="rounded-md overflow-hidden"
-              style={{ overflowX: "hidden" }}
-              extra={
-                <CloseOutlined
-                  onClick={() => {
-                    setIsPilotListVisible(false);
-                  }}
-                />
-              }
+              bodyStyle={{
+                padding: 10,
+                width: "100%",
+                height: "62px",
+              }}
+              className=" rounded-md"
             >
-              <Table
-                key="PilotList"
-                dataSource={PilotDataList}
-                scroll={{ x: true }}
-                pagination={{
-                  pageSize: document.body.offsetWidth < 800 ? 3 : 10,
-                }}
-                columns={pilotColumns}
-                onRow={(record) => ({
-                  onClick: () => {
-                    setIsNo(true);
-                    AirportPlannedTrackLlSource.clear();
-                    AirportPlannedTrackSource.clear();
-                    // GetAirportsLonAndLat(
-                    //   record[11],
-                    //   record[13],
-                    //   record[30],
-                    //   record[5],
-                    //   record[6]
-                    // );
-                    flyToPoint(
-                      map,
-                      [
-                        document.body.offsetWidth < 800
-                          ? Number(record[6])
-                          : Number(record[6]) + 0.003,
-                        document.body.offsetWidth < 800
-                          ? Number(record[5]) - 0.005
-                          : Number(record[5]),
-                      ],
-                      15,
-                      1000
-                    );
+              <span className=" flex justify-center items-center h-full font-bold text-2xl">
+                {time}
+              </span>
+            </Card>
+            {/* 左侧按钮部分 */}
+            <div
+              className="absolute top-20 left-0 z-50"
+              style={{
+                width: "auto",
+              }}
+            >
+              <Row>
+                <Col>
+                  <Tooltip placement="topLeft" title="在线机组列表">
+                    <Button
+                      style={{
+                        marginLeft: "5px",
+                        background: "#000",
+                        border: 0,
+                      }}
+                      onClick={() => {
+                        setIsPilotListVisible(!isPilotListVisible);
+                        setIsAtcListVisible(false);
+                        if (document.body.offsetWidth < 800) {
+                          setIsPilotInfoVisible(false);
+                          setIsAtcInfoVisible(false);
+                        }
+                      }}
+                    >
+                      <UsergroupDeleteOutlined />
+                    </Button>
+                  </Tooltip>
+                </Col>
+              </Row>
+              <Row>
+                <Col>
+                  <Tooltip placement="bottomLeft" title="在线管制列表">
+                    <Button
+                      style={{
+                        marginTop: "15px",
+                        marginLeft: "5px",
+                        background: "#000",
+                        border: 0,
+                      }}
+                      onClick={() => {
+                        setIsAtcListVisible(!isAtcListVisible);
+                        setIsPilotListVisible(false);
+                        if (document.body.offsetWidth < 800) {
+                          setIsPilotInfoVisible(false);
+                          setIsAtcInfoVisible(false);
+                        }
+                      }}
+                    >
+                      <WifiOutlined />
+                    </Button>
+                  </Tooltip>
+                </Col>
+              </Row>
+            </div>
+          </div>
+          {/* 底部 */}
+          <div
+            className="absolute right-0 bottom-0 z-50"
+            style={{ fontSize: 10 }}
+          >
+            © <a href="http://www.deteam.cn">DeStudio</a> ©{" "}
+            <a href="https://openlayers.org/">Openlayers</a>
+          </div>
+          {/* 机组列表 */}
+          {isPilotListVisible ? (
+            <div
+              className="absolute top-0 left-0 sm:ml-14 w-full sm:w-auto z-50"
+              style={{
+                marginTop: document.body.offsetWidth < 800 ? "200px" : "100px",
+              }}
+            >
+              <Card
+                bodyStyle={{ padding: 0 }}
+                title="在线机组列表"
+                className="rounded-md overflow-hidden"
+                style={{ overflowX: "hidden" }}
+                extra={
+                  <CloseOutlined
+                    onClick={() => {
+                      setIsPilotListVisible(false);
+                    }}
+                  />
+                }
+              >
+                <Table
+                  key="PilotList"
+                  dataSource={PilotDataList}
+                  scroll={{ x: true }}
+                  pagination={{
+                    pageSize: document.body.offsetWidth < 800 ? 3 : 10,
+                  }}
+                  columns={pilotColumns}
+                  onRow={(record) => ({
+                    onClick: () => {
+                      setIsNo(true);
+                      const layers = map.current.getLayers().getArray();
+                      if (layers.length > 0) {
+                        layers.forEach((item: any, index: any) => {
+                          if (index > 3) {
+                            item.getSource().refresh();
+                          }
+                        });
+                      }
+                      GetAirportsLonAndLat(
+                        record[11],
+                        record[13],
+                        record[30],
+                        record[5],
+                        record[6]
+                      );
+                      flyToPoint(
+                        map,
+                        [
+                          document.body.offsetWidth < 800
+                            ? Number(record[6])
+                            : Number(record[6]) + 0.003,
+                          document.body.offsetWidth < 800
+                            ? Number(record[5]) - 0.005
+                            : Number(record[5]),
+                        ],
+                        15,
+                        1000
+                      );
 
-                    setInfoData(record);
-                    setIsPilotInfoVisible(true);
-                    setIsAtcInfoVisible(false);
-                    if (document.body.offsetWidth < 800) {
-                      setIsPilotListVisible(false);
-                      setIsAtcListVisible(false);
-                    }
-                  },
-                })}
-              />
-            </Card>
-          </div>
-        ) : null}
-        {/* 管制列表 */}
-        {isAtcListVisible ? (
-          <div
-            className="absolute top-0 left-0 sm:ml-14 w-full sm:w-96"
-            style={{
-              marginTop: document.body.offsetWidth < 800 ? "200px" : "100px",
-            }}
-          >
-            <Card
-              bodyStyle={{ padding: 0 }}
-              title="在线管制列表"
-              className="rounded-md"
-              extra={
-                <CloseOutlined
-                  onClick={() => {
-                    setIsAtcListVisible(false);
-                  }}
+                      setInfoData(record);
+                      setIsPilotInfoVisible(true);
+                      setIsAtcInfoVisible(false);
+                      if (document.body.offsetWidth < 800) {
+                        setIsPilotListVisible(false);
+                        setIsAtcListVisible(false);
+                      }
+                    },
+                  })}
                 />
-              }
+              </Card>
+            </div>
+          ) : null}
+          {/* 管制列表 */}
+          {isAtcListVisible ? (
+            <div
+              className="absolute top-0 left-0 sm:ml-14 w-full sm:w-96 z-50"
+              style={{
+                marginTop: document.body.offsetWidth < 800 ? "200px" : "100px",
+              }}
             >
-              <Table
-                key="AtcList"
-                dataSource={atcDataList}
-                columns={atcColumns}
-                onRow={(record) => ({
-                  onClick: () => {
-                    // const layers = map.current.getLayers().getArray();
-                    // if (layers.length > 0) {
-                    //   layers.forEach((item: any, index: any) => {
-                    //     if (index === 3 || index === 4) {
-                    //       isNo ? item.getSource().refresh() : null;
-                    //     }
-                    //   });
-                    // }
-                    AirportPlannedTrackLlSource.clear();
-                    AirportPlannedTrackSource.clear();
-                    setInfoData(record);
-                    setIsAtcInfoVisible(true);
-                    setIsPilotInfoVisible(false);
-                    flyTo(
-                      map,
-                      [
-                        document.body.offsetWidth < 800
-                          ? Number(record[6])
-                          : Number(record[6]) + 0.05,
-                        document.body.offsetWidth < 800
-                          ? Number(record[5]) - 0.05
-                          : Number(record[5]),
-                      ],
-                      Number(record[19]) <= 30
-                        ? 12
-                        : Number(record[19]) <= 50
-                        ? 11
-                        : Number(record[19]) <= 150
-                        ? 10
-                        : Number(record[19]) <= 300
-                        ? 9
-                        : Number(record[19]) <= 800
-                        ? 8
-                        : Number(record[19]) <= 1300
-                        ? 7
-                        : 6
-                    );
-                    if (document.body.offsetWidth < 800) {
-                      setIsPilotListVisible(false);
+              <Card
+                bodyStyle={{ padding: 0 }}
+                title="在线管制列表"
+                className="rounded-md"
+                extra={
+                  <CloseOutlined
+                    onClick={() => {
                       setIsAtcListVisible(false);
-                    }
-                  },
-                })}
-              />
-            </Card>
-          </div>
-        ) : null}
-      </div>
-      {/* 管制详情弹出框 */}
-      <Drawer
-        title="管制详情"
-        placement={document.body.offsetWidth < 800 ? "bottom" : "right"}
-        onClose={() => {
-          setIsAtcInfoVisible(false);
-        }}
-        getContainer={false}
-        mask={false}
-        className="overflow-hidden"
-        style={{ position: "absolute" }}
-        visible={isAtcInfoVisible}
-      >
-        <Row>
-          <Col span={12}>
-            <div className=" float-left">席位</div>
-          </Col>
-          <Col span={12}>
-            <div className=" float-right">{infoData[0]}</div>
-          </Col>
-        </Row>
-        <Row className="mt-3">
-          <Col span={12}>
-            <div className=" float-left">频率</div>
-          </Col>
-          <Col span={12}>
-            <div className=" float-right">{infoData[4]}</div>
-          </Col>
-        </Row>
-        <Row className="mt-3">
-          <Col span={12}>
-            <div className=" float-left">雷达范围</div>
-          </Col>
-          <Col span={12}>
-            <div className=" float-right">{infoData[19]}</div>
-          </Col>
-        </Row>
-        <Row className="mt-3">
-          <Col span={12}>
-            <div className=" float-left">管制员</div>
-          </Col>
-          <Col span={12}>
-            <div className=" float-right">
-              {infoData[1]}({infoData[2]})
+                    }}
+                  />
+                }
+              >
+                <Table
+                  key="AtcList"
+                  dataSource={atcDataList}
+                  columns={atcColumns}
+                  onRow={(record) => ({
+                    onClick: () => {
+                      const layers = map.current.getLayers().getArray();
+                      if (layers.length > 0) {
+                        layers.forEach((item: any, index: any) => {
+                          if (index > 3) {
+                            item.getSource().refresh();
+                          }
+                        });
+                      }
+                      setInfoData(record);
+                      setIsAtcInfoVisible(true);
+                      setIsPilotInfoVisible(false);
+                      flyTo(
+                        map,
+                        [
+                          document.body.offsetWidth < 800
+                            ? Number(record[6])
+                            : Number(record[6]) + 0.05,
+                          document.body.offsetWidth < 800
+                            ? Number(record[5]) - 0.05
+                            : Number(record[5]),
+                        ],
+                        Number(record[19]) <= 30
+                          ? 12
+                          : Number(record[19]) <= 50
+                          ? 11
+                          : Number(record[19]) <= 150
+                          ? 10
+                          : Number(record[19]) <= 300
+                          ? 9
+                          : Number(record[19]) <= 800
+                          ? 8
+                          : Number(record[19]) <= 1300
+                          ? 7
+                          : 6
+                      );
+                      if (document.body.offsetWidth < 800) {
+                        setIsPilotListVisible(false);
+                        setIsAtcListVisible(false);
+                      }
+                    },
+                  })}
+                />
+              </Card>
             </div>
-          </Col>
-        </Row>
-      </Drawer>
-      {/* 机组详情弹出框 */}
-      <Drawer
-        title="机组详情"
-        placement={document.body.offsetWidth < 800 ? "bottom" : "right"}
-        onClose={() => {
-          const layers = map.current.getLayers().getArray();
-          if (layers.length > 0) {
-            layers.forEach((item: any, index: any) => {
-              if (index === 3 || index === 4) {
-                isNo ? item.getSource().refresh() : null;
-              }
-            });
-          }
-          setIsPilotInfoVisible(false);
-        }}
-        getContainer={false}
-        mask={false}
-        className="overflow-hidden"
-        visible={isPilotInfoVisible}
-      >
-        <Row>
-          <Col span={12}>
-            <div className=" float-left">航班号</div>
-          </Col>
-          <Col span={12}>
-            <div className=" float-right">{infoData[0]}</div>
-          </Col>
-        </Row>
-        <Row className="mt-3">
-          <Col span={12}>
-            <div className=" float-left">起降机场</div>
-          </Col>
-          <Col span={12}>
-            <div className=" float-right">
-              <div className=" flex">
-                <span>{infoData[11]}</span>
-                <span>
-                  <img className=" w-3 h-3 mt-1 mx-2" src={FlightImg} />
-                </span>
-                <span>{infoData[13]}</span>
+          ) : null}
+        </div>
+        {/* 管制详情弹出框 */}
+        <Drawer
+          title="管制详情"
+          placement={document.body.offsetWidth < 800 ? "bottom" : "right"}
+          onClose={() => {
+            setIsAtcInfoVisible(false);
+          }}
+          getContainer={false}
+          mask={false}
+          className="overflow-hidden"
+          style={{ position: "absolute" }}
+          visible={isAtcInfoVisible}
+        >
+          <Row>
+            <Col span={12}>
+              <div className=" float-left">席位</div>
+            </Col>
+            <Col span={12}>
+              <div className=" float-right">{infoData[0]}</div>
+            </Col>
+          </Row>
+          <Row className="mt-3">
+            <Col span={12}>
+              <div className=" float-left">频率</div>
+            </Col>
+            <Col span={12}>
+              <div className=" float-right">{infoData[4]}</div>
+            </Col>
+          </Row>
+          <Row className="mt-3">
+            <Col span={12}>
+              <div className=" float-left">雷达范围</div>
+            </Col>
+            <Col span={12}>
+              <div className=" float-right">{infoData[19]}</div>
+            </Col>
+          </Row>
+          <Row className="mt-3">
+            <Col span={12}>
+              <div className=" float-left">管制员</div>
+            </Col>
+            <Col span={12}>
+              <div className=" float-right">
+                {infoData[1]}({infoData[2]})
               </div>
-            </div>
-          </Col>
-        </Row>
-        <Row className="mt-3">
-          <Col span={12}>
-            <div className=" float-left">机型</div>
-          </Col>
-          <Col span={12}>
-            <div className=" float-right">{infoData[9]}</div>
-          </Col>
-        </Row>
-        <Row className="mt-3">
-          <Col span={12}>
-            <div className=" float-left">飞行员</div>
-          </Col>
-          <Col span={12}>
-            <div className=" float-right">
-              {infoData[1]}({infoData[2]})
-            </div>
-          </Col>
-        </Row>
-        <Row className="mt-3">
-          <Col span={12}>
-            <div className=" float-left">速度</div>
-          </Col>
-          <Col span={12}>
-            <div className=" float-right">{infoData[8]}kt</div>
-          </Col>
-        </Row>
-        <Row className="mt-3">
-          <Col span={12}>
-            <div className=" float-left">应答机</div>
-          </Col>
-          <Col span={12}>
-            <div className=" float-right">{infoData[17]}</div>
-          </Col>
-        </Row>
-        <Row className="mt-3">
-          <Col span={12}>
-            <div className=" float-left">巡航高度</div>
-          </Col>
-          <Col span={12}>
-            <div className=" float-right">{infoData[7]}ft</div>
-          </Col>
-        </Row>
-        <Row className="mt-3">
-          <Col span={12}>
-            <div className=" float-left">航向</div>
-          </Col>
-          <Col span={12}>
-            <div className=" float-right">
-              {Math.round((((Number(infoData[38]) & 4092) >> 2) / 1024) * 360)}
-            </div>
-          </Col>
-        </Row>
-        <Row className="mt-3">
-          <Col span={24}>
-            <div className=" float-left">航路</div>
-          </Col>
-          <Col span={24}>
-            <TextArea
-              readOnly
-              bordered={false}
-              style={{ minWidth: "300px" }}
-              autoSize={{ minRows: 2, maxRows: 10 }}
-              className="text-zinc-400 text-md"
-              value={infoData[30]}
-            />
-          </Col>
-        </Row>
-      </Drawer>
+            </Col>
+          </Row>
+        </Drawer>
+        {/* 机组详情弹出框 */}
+        <Drawer
+          title="机组详情"
+          placement={document.body.offsetWidth < 800 ? "bottom" : "right"}
+          onClose={() => {
+            const layers = map.current.getLayers().getArray();
+            if (layers.length > 0) {
+              layers.forEach((item: any, index: any) => {
+                if (index > 3) {
+                  item.getSource().refresh();
+                }
+              });
+            }
+            setIsPilotInfoVisible(false);
+          }}
+          getContainer={false}
+          mask={false}
+          className="overflow-hidden"
+          visible={isPilotInfoVisible}
+        >
+          <Row>
+            <Col span={12}>
+              <div className=" float-left">航班号</div>
+            </Col>
+            <Col span={12}>
+              <div className=" float-right">{infoData[0]}</div>
+            </Col>
+          </Row>
+          <Row className="mt-3">
+            <Col span={12}>
+              <div className=" float-left">起降机场</div>
+            </Col>
+            <Col span={12}>
+              <div className=" float-right">
+                <div className=" flex">
+                  <span>{infoData[11]}</span>
+                  <span>
+                    <img className=" w-3 h-3 mt-1 mx-2" src={FlightImg} />
+                  </span>
+                  <span>{infoData[13]}</span>
+                </div>
+              </div>
+            </Col>
+          </Row>
+          <Row className="mt-3">
+            <Col span={12}>
+              <div className=" float-left">机型</div>
+            </Col>
+            <Col span={12}>
+              <div className=" float-right">{infoData[9]}</div>
+            </Col>
+          </Row>
+          <Row className="mt-3">
+            <Col span={12}>
+              <div className=" float-left">飞行员</div>
+            </Col>
+            <Col span={12}>
+              <div className=" float-right">
+                {infoData[1]}({infoData[2]})
+              </div>
+            </Col>
+          </Row>
+          <Row className="mt-3">
+            <Col span={12}>
+              <div className=" float-left">速度</div>
+            </Col>
+            <Col span={12}>
+              <div className=" float-right">{infoData[8]}kt</div>
+            </Col>
+          </Row>
+          <Row className="mt-3">
+            <Col span={12}>
+              <div className=" float-left">应答机</div>
+            </Col>
+            <Col span={12}>
+              <div className=" float-right">{infoData[17]}</div>
+            </Col>
+          </Row>
+          <Row className="mt-3">
+            <Col span={12}>
+              <div className=" float-left">巡航高度</div>
+            </Col>
+            <Col span={12}>
+              <div className=" float-right">{infoData[7]}ft</div>
+            </Col>
+          </Row>
+          <Row className="mt-3">
+            <Col span={12}>
+              <div className=" float-left">航向</div>
+            </Col>
+            <Col span={12}>
+              <div className=" float-right">
+                {Math.round(
+                  (((Number(infoData[38]) & 4092) >> 2) / 1024) * 360
+                )}
+              </div>
+            </Col>
+          </Row>
+          <Row className="mt-3">
+            <Col span={24}>
+              <div className=" float-left">航路</div>
+            </Col>
+            <Col span={24}>
+              <TextArea
+                readOnly
+                bordered={false}
+                style={{ minWidth: "300px" }}
+                autoSize={{ minRows: 2, maxRows: 10 }}
+                className="text-zinc-400 text-md"
+                value={infoData[30]}
+              />
+            </Col>
+          </Row>
+        </Drawer>
+      </div>
     </div>
   );
 }
