@@ -4,7 +4,11 @@ import { Tile as TileLayer, Vector as VectorLayer } from "ol/layer";
 import XYZ from "ol/source/XYZ";
 import "ol/ol.css";
 import { fromLonLat } from "ol/proj";
-import { GetAirportsLonAndLatApi, GetMapText } from "./api/map";
+import {
+  GetAirportsLonAndLatApi,
+  GetMapText,
+  GetnavigationTrackApi,
+} from "./api/map";
 import { Vector as VectorSource, Cluster } from "ol/source";
 import { Circle, LineString, Point } from "ol/geom";
 import { Style, Stroke, Fill, Icon, Text } from "ol/style";
@@ -173,7 +177,13 @@ function MeMap() {
               setInfoData(data);
               setIsAtcInfoVisible(false);
               setIsPilotInfoVisible(true);
-              GetAirportsLonAndLat(data[11], data[13], data[5], data[6]);
+              GetAirportsLonAndLat(
+                data[11],
+                data[13],
+                data[30],
+                data[5],
+                data[6]
+              );
             }
             if (data[3] === "ATC") {
               AirportPlannedTrackLlSource.clear();
@@ -210,6 +220,9 @@ function MeMap() {
           }
         }
       );
+    });
+    map.current.on("change", function (evt: any) {
+      console.log("触发了");
     });
   };
 
@@ -337,7 +350,6 @@ function MeMap() {
     AtcLayer.setSource(AtcSource);
     AtcRangeLayer.setSource(AtcRangeSource);
     AtcLayer.setZIndex(99);
-    AtcRangeLayer.setZIndex(1);
     map.current.addLayer(AtcLayer);
     map.current.addLayer(AtcRangeLayer);
     map.current.addLayer(PilotLayer);
@@ -348,20 +360,21 @@ function MeMap() {
     AirportPlannedTrackLlSource.clear();
     const routeData: any[] = [];
     const routeDataIsLl: any[] = [];
-    routeDataIsLl.push(fromLonLat([data[0][1], data[0][0]]));
-    routeDataIsLl.push(
-      fromLonLat([data[data.length - 1][1], data[data.length - 1][0]])
-    );
-    data.map((item) => {
-      routeData.push(fromLonLat([item[1], item[0]]));
+    routeDataIsLl.push([data[0][1], data[0][2]]);
+    routeDataIsLl.push([data[data.length - 1][1], data[data.length - 1][2]]);
+    data.map((item: any) => {
+      routeData.push(fromLonLat([item[1], item[2]]));
+      routeDataIsLl.push([item[1], item[2], item[0]]);
     });
+    console.log(routeData);
+
     const _feature = new Feature({
       geometry: new LineString(routeData),
     });
     _feature.setStyle(
       new Style({
         stroke: new Stroke({
-          width: 2,
+          width: 5,
           color: "#717171",
         }),
       })
@@ -370,7 +383,7 @@ function MeMap() {
     const _featureLl = new Feature({
       geometry: new LineString([
         ll,
-        fromLonLat([data[data.length - 1][1], data[data.length - 1][0]]),
+        fromLonLat([data[data.length - 1][1], data[data.length - 1][2]]),
       ]),
     });
     _featureLl.setStyle(
@@ -384,9 +397,11 @@ function MeMap() {
       })
     );
     const _AirportPlannedTrackFeatures = routeDataIsLl.map((item, index) => {
+      console.log(item, index);
+
       const _feature = new Feature({
         title: item,
-        geometry: new Point(item),
+        geometry: new Point(fromLonLat([item[0], item[1]])),
       });
       if (index === 0) {
         _feature.setStyle(
@@ -397,8 +412,7 @@ function MeMap() {
             }),
           })
         );
-      }
-      if (index === 1) {
+      } else if (index === 1) {
         _feature.setStyle(
           new Style({
             zIndex: 20,
@@ -407,8 +421,20 @@ function MeMap() {
             }),
           })
         );
+      } else {
+        _feature.setStyle(
+          new Style({
+            zIndex: 20,
+            text: new Text({
+              font: "10px sans-serif",
+              text: item[2],
+              fill: new Fill({
+                color: "rgba(255, 255, 255, 0.7)",
+              }),
+            }),
+          })
+        );
       }
-
       return _feature;
     });
     AirportPlannedTrackSource.addFeatures([_feature, _featureLl]);
@@ -424,20 +450,22 @@ function MeMap() {
   const GetAirportsLonAndLat = async (
     upAirport: string,
     downAirport: string,
+    route: string,
     lon: string,
     lat: string
   ) => {
     try {
-      const resUpAirportData: any = await GetAirportsLonAndLatApi(upAirport);
-      const resDownAirportData: any = await GetAirportsLonAndLatApi(
+      // const resUpAirportData: any = await GetAirportsLonAndLatApi(upAirport);
+      // const resDownAirportData: any = await GetAirportsLonAndLatApi(
+      //   downAirport
+      // );
+      const resData: any = await GetnavigationTrackApi(
+        route,
+        upAirport,
         downAirport
       );
       addAirportPlannedTrackSource(
-        [
-          [Number(resUpAirportData[1]), Number(resUpAirportData[2])],
-          // ...getNavigationDataList(route),
-          [Number(resDownAirportData[1]), Number(resDownAirportData[2])],
-        ],
+        resData,
         fromLonLat([Number(lat), Number(lon)])
       );
     } catch (error) {}
@@ -448,7 +476,6 @@ function MeMap() {
 
   //   } catch (error) {}
   // };
-
   useEffect(() => {
     initMap();
     onLoading();
@@ -592,12 +619,13 @@ function MeMap() {
                     setIsNo(true);
                     AirportPlannedTrackLlSource.clear();
                     AirportPlannedTrackSource.clear();
-                    GetAirportsLonAndLat(
-                      record[11],
-                      record[13],
-                      record[5],
-                      record[6]
-                    );
+                    // GetAirportsLonAndLat(
+                    //   record[11],
+                    //   record[13],
+                    //   record[30],
+                    //   record[5],
+                    //   record[6]
+                    // );
                     flyToPoint(
                       map,
                       [
@@ -651,14 +679,16 @@ function MeMap() {
                 columns={atcColumns}
                 onRow={(record) => ({
                   onClick: () => {
-                    const layers = map.current.getLayers().getArray();
-                    if (layers.length > 0) {
-                      layers.forEach((item: any, index: any) => {
-                        if (index === 3 || index === 4) {
-                          isNo ? item.getSource().refresh() : null;
-                        }
-                      });
-                    }
+                    // const layers = map.current.getLayers().getArray();
+                    // if (layers.length > 0) {
+                    //   layers.forEach((item: any, index: any) => {
+                    //     if (index === 3 || index === 4) {
+                    //       isNo ? item.getSource().refresh() : null;
+                    //     }
+                    //   });
+                    // }
+                    AirportPlannedTrackLlSource.clear();
+                    AirportPlannedTrackSource.clear();
                     setInfoData(record);
                     setIsAtcInfoVisible(true);
                     setIsPilotInfoVisible(false);

@@ -12,3 +12,19 @@ export const GetAirportsLonAndLatApi = (ident: string) => {
 export const GetnavigationLonAndLatApi = (navigation: string) => {
   return http.get("/api/navigation.php?na=" + navigation);
 };
+export const GetnavigationTrackApi = (
+  route: string,
+  dep: string,
+  arr: string
+) => {
+  return http.get("/api/test.php", {
+    params: {
+      route: route,
+      dep: dep,
+      arr: arr,
+    },
+    headers: {
+      "Content-Type": "application/json;charset=UTF-8",
+    },
+  });
+};
