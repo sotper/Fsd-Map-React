@@ -4,11 +4,7 @@ import { Tile as TileLayer, Vector as VectorLayer } from "ol/layer";
 import XYZ from "ol/source/XYZ";
 import "ol/ol.css";
 import { fromLonLat } from "ol/proj";
-import {
-  GetAirportsLonAndLatApi,
-  GetMapText,
-  GetnavigationTrackApi,
-} from "./api/map";
+import { GetMapText, GetnavigationTrackApi } from "./api/map";
 import { Vector as VectorSource, Cluster } from "ol/source";
 import { Circle, LineString, Point } from "ol/geom";
 import { Style, Stroke, Fill, Icon, Text } from "ol/style";
@@ -71,7 +67,7 @@ const pilotColumns = [
           ) : Number(data[8]) <= 50 ? (
             <Tag color={"blue"}>滑行中</Tag>
           ) : (
-            <Tag color={"rgb(0,176,240)"}>持飞中</Tag>
+            <Tag color={"rgb(0,176,240)"}>执飞中</Tag>
           )}
         </>
       );
@@ -128,6 +124,8 @@ function MeMap() {
   let AirportPlannedTrackLlSource = new VectorSource();
 
   const [time, setTime] = useState<any>();
+  const [pilotSum, setPilotSum] = useState<number>(0);
+  const [atcSum, setAtcSum] = useState<number>(0);
   const [infoData, setInfoData] = useState<string[]>([]);
   const [atcDataList, setAtcDataList] = useState<string[][]>([]);
   const [PilotDataList, setPilotDataList] = useState<string[][]>([]);
@@ -137,7 +135,6 @@ function MeMap() {
   const [isPilotListVisible, setIsPilotListVisible] = useState<boolean>(false);
   const [isAtcListVisible, setIsAtcListVisible] = useState<boolean>(false);
   const [isAtcInfoVisible, setIsAtcInfoVisible] = useState<boolean>(false);
-
   const initMap = () => {
     map.current = new Map({
       target: "map",
@@ -145,6 +142,7 @@ function MeMap() {
         new TileLayer({
           source: new XYZ({
             url: "https://map.geoq.cn/ArcGIS/rest/services/ChinaOnlineStreetPurplishBlue/MapServer/tile/{z}/{y}/{x}",
+            // url: "http://t0.tianditu.gov.cn/img_w/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=img&STYLE=default&TILEMATRIXSET=w&FORMAT=tiles&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&tk=f981559925515b9757e5b7f31b8752be",
           }),
         }),
         AtcLayer,
@@ -219,9 +217,6 @@ function MeMap() {
         }
       );
     });
-    map.current.on("change", function (evt: any) {
-      console.log("触发了");
-    });
   };
 
   const onLoading = async () => {
@@ -246,6 +241,8 @@ function MeMap() {
         }
       });
       setAtcDataList(atcData);
+      setPilotSum(pilotData.length);
+      setAtcSum(atcData.length);
       setPilotDataList(pilotData);
       setAtcAndPilotSource(atcData, pilotData);
     } catch (error) {}
@@ -353,19 +350,35 @@ function MeMap() {
     map.current.addLayer(PilotLayer);
   };
   // 航迹渲染方法
-  const addAirportPlannedTrackSource = (data: number[][], ll: any) => {
+  const addAirportPlannedTrackSource = (data: number[][], ll: number[]) => {
     AirportPlannedTrackSource.clear();
     AirportPlannedTrackLlSource.clear();
     const routeData: any[] = [];
+    const routeDataBf: any[] = [];
+    const routeDataTwo: any[] = [];
     const routeDataIsLl: any[] = [];
+    let IsAdd = false;
+    let IsAddLat = 0;
     routeDataIsLl.push([data[0][1], data[0][2]]);
     routeDataIsLl.push([data[data.length - 1][1], data[data.length - 1][2]]);
     data.map((item: any) => {
-      routeData.push(fromLonLat([item[1], item[2]]));
+      if (item[1] > 0) {
+        routeData.push(fromLonLat([item[1], item[2]]));
+        routeDataBf.push([item[1], item[2]]);
+      } else {
+        if (!IsAdd) {
+          const m =
+            (routeDataBf[routeDataBf.length - 1][1] & item[2]) +
+            ((routeDataBf[routeDataBf.length - 1][1] ^ item[2]) >> 1);
+          routeDataTwo.push(fromLonLat([-180, m]));
+          IsAddLat = m;
+        }
+        routeDataTwo.push(fromLonLat([item[1], item[2]]));
+        IsAdd = true;
+      }
       routeDataIsLl.push([item[1], item[2], item[0]]);
     });
-    console.log(routeData);
-
+    IsAdd ? routeData.push(fromLonLat([180, IsAddLat])) : null;
     const _feature = new Feature({
       geometry: new LineString(routeData),
     });
@@ -378,13 +391,48 @@ function MeMap() {
       })
     );
 
+    const _featureTwo = new Feature({
+      geometry: new LineString(routeDataTwo),
+    });
+    _featureTwo.setStyle(
+      new Style({
+        stroke: new Stroke({
+          width: 5,
+          color: "#717171",
+        }),
+      })
+    );
+    const d: number[][] = [];
+    const dd: number[][] = [];
+    if (IsAdd) {
+      const m =
+        (ll[1] & data[data.length - 1][2]) +
+        ((ll[1] ^ data[data.length - 1][2]) >> 1);
+      d.push(fromLonLat(ll));
+      d.push(fromLonLat([180, m]));
+      dd.push(fromLonLat([data[data.length - 1][1], data[data.length - 1][2]]));
+      dd.push(fromLonLat([-180, m]));
+    } else {
+      d.push(fromLonLat(ll));
+      d.push(fromLonLat([data[data.length - 1][1], data[data.length - 1][2]]));
+    }
     const _featureLl = new Feature({
-      geometry: new LineString([
-        ll,
-        fromLonLat([data[data.length - 1][1], data[data.length - 1][2]]),
-      ]),
+      geometry: new LineString(d),
     });
     _featureLl.setStyle(
+      new Style({
+        zIndex: 20,
+        stroke: new Stroke({
+          width: 2,
+          color: "#717171",
+          lineDash: [20, 10, 20, 10],
+        }),
+      })
+    );
+    const _featureLlTwo = new Feature({
+      geometry: new LineString(dd),
+    });
+    _featureLlTwo.setStyle(
       new Style({
         zIndex: 20,
         stroke: new Stroke({
@@ -420,20 +468,26 @@ function MeMap() {
       } else {
         _feature.setStyle(
           new Style({
-            zIndex: 20,
+            zIndex: 21,
             text: new Text({
               font: "10px sans-serif",
               text: item[2],
               fill: new Fill({
                 color: "rgba(255, 255, 255, 0.7)",
               }),
+              offsetY: -5,
             }),
           })
         );
       }
       return _feature;
     });
-    AirportPlannedTrackSource.addFeatures([_feature, _featureLl]);
+    AirportPlannedTrackSource.addFeatures([
+      _feature,
+      _featureLl,
+      _featureTwo,
+      _featureLlTwo,
+    ]);
     AirportPlannedTrackLayer.setSource(AirportPlannedTrackSource);
     AirportPlannedTrackLayer.setZIndex(20);
     AirportPlannedTrackLlSource.addFeatures(_AirportPlannedTrackFeatures);
@@ -455,17 +509,8 @@ function MeMap() {
       upAirport,
       downAirport
     );
-    addAirportPlannedTrackSource(
-      resData,
-      fromLonLat([Number(lat), Number(lon)])
-    );
+    addAirportPlannedTrackSource(resData, [Number(lat), Number(lon)]);
   };
-
-  // const GetNavigationLonAndLat = async (navigation: string) => {
-  //   try {
-
-  //   } catch (error) {}
-  // };
   useEffect(() => {
     initMap();
     onLoading();
@@ -590,7 +635,7 @@ function MeMap() {
             >
               <Card
                 bodyStyle={{ padding: 0 }}
-                title="在线机组列表"
+                title={"在线机组列表(在线机组数量:" + pilotSum + "架)"}
                 className="rounded-md overflow-hidden"
                 style={{ overflowX: "hidden" }}
                 extra={
@@ -664,7 +709,7 @@ function MeMap() {
             >
               <Card
                 bodyStyle={{ padding: 0 }}
-                title="在线管制列表"
+                title={"在线管制列表(管制在线人数：" + atcSum + ")"}
                 className="rounded-md"
                 extra={
                   <CloseOutlined
